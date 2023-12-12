@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Win32DragResize;
+namespace Win32DragResize.Models.Win32;
 
 /// <summary>
 /// AKA "NMHDR".<br/>
@@ -9,7 +9,7 @@ namespace Win32DragResize;
 [StructLayout(LayoutKind.Sequential)]
 public struct NotificationMessageHeader
 {
-    public nint hwndFrom;
-    public uint idFrom;
-    public uint code;
+    public nint HwndFrom;
+    public uint IdFrom;
+    public uint Code;
 }

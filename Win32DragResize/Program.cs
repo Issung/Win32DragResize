@@ -1,5 +1,7 @@
 using Gma.System.MouseKeyHook;
 using System.Diagnostics;
+using Win32DragResize.Models;
+using Win32DragResize.Models.Win32;
 
 namespace Win32DragResize;
 
@@ -37,6 +39,7 @@ partial class Program
     public const int WM_RESIZE_FINISHED = WM_USER + 1;
     public const int WM_WINDOWPOSCHANGING = 0x0046;
     public const int WM_WINDOWPOSCHANGED = 0x0047;
+    public const uint SETWINDOWRECT_FLAGS = SWP_DRAWFRAME;
 
     /// <summary>
     /// Keep the delegate instance alive to prevent it from being garbage collected
@@ -46,6 +49,7 @@ partial class Program
 
     static nint? draggingHwnd;
     static Rect draggingRect;
+    static Dimensions size;
 
     static void Main()
     {
@@ -82,48 +86,65 @@ partial class Program
             // Log information about the window's position change
             //Debug.WriteLine($"Window location changed. Left: {rect.left}, Top: {rect.top}");
             Win32.GetWindowRect(hwnd, out draggingRect);
-            Debug.WriteLine($"Saving hwnd {hwnd}");
+            Debug.WriteLine($"Saving hwnd {hwnd}. Rect Left: {draggingRect.Left}, Top: {draggingRect.Top}, Right: {draggingRect.Right}, Bottom: {draggingRect.Bottom}");
             draggingHwnd = hwnd;
+            size = new(draggingRect);
+            Debug.WriteLine(size.ToString());
         }
         else if (eventType == EVENT_SYSTEM_MOVESIZEEND)
         {
-            //Program.hwnd = null;
+            Win32.GetWindowRect(draggingHwnd.Value, out var currentRect);
+            var (middleX, _) = Util.GetMiddle(currentRect);
+            var left = middleX - (size.Width / 2);
+            Win32.SetWindowPos(
+                draggingHwnd.Value,
+                nint.Zero,
+                left: left,
+                top: currentRect.Top,
+                width: size.Width,
+                height: size.Height,
+                uFlags: SETWINDOWRECT_FLAGS
+            );
+
+            draggingHwnd = null;
         }
     }
 
     private static void GlobalHook_MouseWheel(object? sender, MouseEventArgs e)
     {
         Debug.WriteLine("GlobalHook_MouseWheel");
+
         if (draggingHwnd != null)
         {
-            //var flags = SWP_ASYNCWINDOWPOS | SWP_DRAWFRAME | SWP_SHOWWINDOW | SWP_NOCOPYBITS | SWP_NOREPOSITION/*| SWP_NOSENDCHANGING*/;
-            //var flags = SWP_NOZORDER | SWP_NOREPOSITION;
-            uint flags = SWP_DRAWFRAME;
-
-            Debug.WriteLine($"MouseWheel while dragging.");
             const int amount = 25;
             var adjustment = e?.Delta is null or < 0 ? -amount : amount;
 
-            //SendMessage(hwnd.Value, WM_WINDOWPOSCHANGING, IntPtr.Zero, IntPtr.Zero);
-
             Win32.GetWindowRect(draggingHwnd.Value, out var currentRect);
-            var width = currentRect.right - currentRect.left;
-            var height = currentRect.bottom - currentRect.top;
+            //Debug.WriteLine($"currentRect Left: {currentRect.Left}, Top: {currentRect.Top}, Right: {currentRect.Right}, Bottom: {currentRect.Bottom}.");
 
-            Win32.SetWindowPos(draggingHwnd.Value, nint.Zero,
-                x: currentRect.left - adjustment / 2,
-                y: currentRect.top,
-                cx: width + adjustment,
-                cy: height + adjustment,
-                uFlags: flags);
+            var (middleX, _) = Util.GetMiddle(currentRect);
+            //Debug.WriteLine($"middleX: {middleX}, middleY: {middleY}.");
 
-            //SendMessage(hwnd.Value, WM_WINDOWPOSCHANGED, IntPtr.Zero, IntPtr.Zero);
-            //MoveWindow(hwnd.Value, 50, 50, 500, 500, true);
+            size.Width += adjustment;// draggingRect.Right - draggingRect.Left;
+            size.Height += adjustment; // draggingRect.Bottom - draggingRect.Top;
+            //Debug.WriteLine(size.ToString());
+
+            var left = middleX - (size.Width / 2);
+            //Debug.WriteLine($"Desires: Left {left}, Right: {left + size.Width}, Top: {top}, Bottom: {top + size.Height}.");
+
+            Win32.SetWindowPos(
+                draggingHwnd.Value,
+                nint.Zero,
+                left: left,
+                top: currentRect.Top,
+                width: size.Width,
+                height: size.Height,
+                uFlags: SETWINDOWRECT_FLAGS
+            );
         }
         else
         {
             //Debug.WriteLine($"MouseWheel! Delta: {e.Delta}.");
-            Debug.WriteLine($"MouseWheel.");
         }
     }
 }

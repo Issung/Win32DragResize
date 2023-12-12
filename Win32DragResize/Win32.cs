@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using Win32DragResize.Models.Win32;
 
 namespace Win32DragResize;
 
@@ -25,17 +26,17 @@ public static class Win32
     [DllImport("user32.dll")]
     public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
-    [DllImport("user32.dll")]
-    public static extern bool GetWindowRect(nint hwnd, out Rect lpRect);
-
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool AdjustWindowRect(ref Rect lpRect, uint dwStyle, [MarshalAs(UnmanagedType.Bool)] bool bMenu);
+
+    [DllImport("user32.dll")]
+    public static extern bool GetWindowRect(nint hwnd, out Rect lpRect);
 
     /// <summary>
     /// <see href="https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos?redirectedfrom=MSDN"/>
     /// </summary>
     [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool SetWindowPos(nint hWnd, nint hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
+    public static extern bool SetWindowPos(nint hWnd, nint hWndInsertAfter, int left, int top, int width, int height, uint uFlags);
 
     /// <summary>
     /// <see href="https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-movewindow"/>
